@@ -1,7 +1,7 @@
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onSubmit, onClick)
 import Char exposing (isDigit, isUpper, isLower, isAlphaNum)
 
 -- MAIN
@@ -20,12 +20,22 @@ type alias Model =
   { name : String
   , password : String
   , passwordAgain : String
+  , age : String
   , valid : Validation
   }
 
 init : Model
 init =
-  Model "" "" "" Blank
+  Model "" "" "" "" Blank
+
+allEmpty : Model -> Bool
+allEmpty model =
+  [
+    model.name,
+    model.password,
+    model.passwordAgain,
+    model.age ]
+  |> List.all String.isEmpty
 
 validationSetError : String -> Model -> Model
 validationSetError errorMessage model =
@@ -55,6 +65,13 @@ validationRemoveError errorMessage model =
         in
           { model | valid = Ko invalid }
     _ -> { model | valid = Ok }
+
+maybeBackToBlank : Model -> Model
+maybeBackToBlank model =
+  if allEmpty model then
+    { model | valid = Blank }
+  else
+    model
 
 onlyErrorMessage : String -> String -> Bool
 onlyErrorMessage text message =
@@ -103,28 +120,68 @@ validatePasswordMatch model =
     else
       model |> validationRemoveError(errorMessage)
 
+validatePassword : Model -> Model
+validatePassword model =
+  model
+  |> validatePasswordLength
+  |> validatePasswordChars
+  |> validatePasswordMatch
+
+validateAge : Model -> Model
+validateAge model =
+  let
+    errorMessage = "Age should be a number"
+  in
+    if model.age |> String.isEmpty then
+      model |> validationRemoveError(errorMessage)
+    else
+      case model.age |> String.toInt of
+        Just number ->
+          model |> validationRemoveError(errorMessage)
+        Nothing ->
+          model |> validationSetError(errorMessage)
+
+
+validate : Model -> Model
+validate model =
+  model
+  |> validatePassword
+  |> validateAge
+  |> maybeBackToBlank
+
 -- UPDATE
 
 type Msg
   = Name String
   | Password String
   | PasswordAgain String
+  | Age String
+  | Submit String
 
 update : Msg -> Model -> Model
 update msg model =
   case msg of
     Name name ->
       { model | name = name }
+      |> maybeBackToBlank
 
     Password password ->
       { model | password = password }
-      |> validatePasswordLength
-      |> validatePasswordChars
-      |> validatePasswordMatch
+      |> validatePassword
+      |> maybeBackToBlank
 
     PasswordAgain password ->
       { model | passwordAgain = password }
       |> validatePasswordMatch
+      |> maybeBackToBlank
+
+    Age age ->
+      { model | age = age }
+      |> validateAge
+      |> maybeBackToBlank
+
+    Submit submit ->
+      model |> validate
 
 -- VIEW
 
@@ -132,8 +189,9 @@ view : Model -> Html Msg
 view model =
   div []
     [ viewInput "text" "Name" model.name Name
-    , viewInput "text" "Password" model.password Password
-    , viewInput "text" "Re-enter Password" model.passwordAgain PasswordAgain
+    , viewInput "password" "Password" model.password Password
+    , viewInput "password" "Re-enter Password" model.passwordAgain PasswordAgain
+    , viewInput "text" "Enter your age" model.age Age
     , viewValidation model
     ]
 
