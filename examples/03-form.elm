@@ -2,8 +2,7 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
-
-
+import Char exposing (isDigit, isUpper, isLower, isAlphaNum)
 
 -- MAIN
 
@@ -27,6 +26,37 @@ init : Model
 init =
   Model "" "" ""
 
+validatePasswordLength : Model -> (Bool, String)
+validatePasswordLength model =
+  if String.length model.password < 8 then
+    (False, "Password should be at least 8 characters long")
+  else
+    (True, model.password |> String.length |> String.fromInt)
+
+validatePasswordChars : Model -> (Bool, String)
+validatePasswordChars model =
+  if String.any isDigit model.password &&
+    String.any isLower model.password &&
+    String.any isUpper model.password &&
+    not(String.all isAlphaNum model.password) then
+    (True, "match")
+  else
+    (False, model.password ++ " does not contain ...")
+
+validatePasswordMatch : Model -> (Bool, String)
+validatePasswordMatch model =
+  if model.password /= model.passwordAgain then
+    (False, "Passwords do not match!")
+  else
+    (True, "do match")
+
+validations model = [
+    validatePasswordLength model,
+    validatePasswordChars model,
+    validatePasswordMatch model
+  ]
+
+isValid model = validations model |> List.all Tuple.first
 
 
 -- UPDATE
@@ -69,10 +99,15 @@ viewInput : String -> String -> String -> (String -> msg) -> Html msg
 viewInput t p v toMsg =
   input [ type_ t, placeholder p, value v, onInput toMsg ] []
 
+viewValidationErrorText model =
+  validations model
+    |> List.filter (\n -> not(Tuple.first n))
+    |> List.map Tuple.second
+    |> String.join ","
 
 viewValidation : Model -> Html msg
 viewValidation model =
-  if model.password == model.passwordAgain then
+  if isValid model then
     div [ style "color" "green" ] [ text "OK" ]
   else
-    div [ style "color" "red" ] [ text "Passwords do not match!" ]
+    div [ style "color" "red" ] [ text(viewValidationErrorText model) ]
