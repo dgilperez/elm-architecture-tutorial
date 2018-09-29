@@ -17,8 +17,7 @@ main =
 
 
 type alias Model =
-  { content : String
-  }
+  { content : String }
 
 
 init : Model

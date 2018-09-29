@@ -1,11 +1,10 @@
 import Browser
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, text, p)
 import Html.Events exposing (onClick)
 
 
 main =
   Browser.sandbox { init = init, update = update, view = view }
-
 
 -- MODEL
 
@@ -15,10 +14,9 @@ init : Model
 init =
   0
 
-
 -- UPDATE
 
-type Msg = Increment | Decrement
+type Msg = Increment | Decrement | Reset
 
 update : Msg -> Model -> Model
 update msg model =
@@ -29,6 +27,8 @@ update msg model =
     Decrement ->
       model - 1
 
+    Reset ->
+      0
 
 -- VIEW
 
@@ -38,4 +38,6 @@ view model =
     [ button [ onClick Decrement ] [ text "-" ]
     , div [] [ text (String.fromInt model) ]
     , button [ onClick Increment ] [ text "+" ]
+    , p [] [ text "Reset that counter" ]
+    , button [ onClick Reset ] [ text "reset" ]
     ]
