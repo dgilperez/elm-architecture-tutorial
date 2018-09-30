@@ -26,15 +26,45 @@ main =
 
 
 type alias Model =
-    { dieFace : Int
+    { dieFace : Face
     }
+
+
+type Face
+    = One
+    | Two
+    | Three
+    | Four
+    | Five
+    | Six
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model 1
+    ( Model One
     , Cmd.none
     )
+
+
+diceFaces : List ( Int, Face )
+diceFaces =
+    [ ( 1, One ), ( 2, Two ), ( 3, Three ), ( 4, Four ), ( 5, Five ), ( 6, Six ) ]
+
+
+faceValue : Face -> Int
+faceValue face =
+    let
+        value =
+            diceFaces
+                |> List.filter (\n -> Tuple.second n == face)
+                |> List.head
+    in
+    case value of
+        Just ( n, _ ) ->
+            n
+
+        _ ->
+            0
 
 
 isEven : Int -> Bool
@@ -53,7 +83,8 @@ isOdd n =
 
 type Msg
     = Roll
-    | NewFace Int
+    | RollWeigthed
+    | NewFace Face
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -61,13 +92,37 @@ update msg model =
     case msg of
         Roll ->
             ( model
-            , Random.generate NewFace (Random.int 1 6)
+            , Random.generate NewFace roll
+            )
+
+        RollWeigthed ->
+            ( model
+            , Random.generate NewFace rollWeigthed
             )
 
         NewFace newFace ->
             ( Model newFace
             , Cmd.none
             )
+
+
+roll : Random.Generator Face
+roll =
+    Random.uniform
+        One
+        [ Two, Three, Four, Five, Six ]
+
+
+rollWeigthed : Random.Generator Face
+rollWeigthed =
+    Random.weighted
+        ( 5, One )
+        [ ( 10, Two )
+        , ( 10, Three )
+        , ( 10, Four )
+        , ( 15, Five )
+        , ( 50, Six )
+        ]
 
 
 
@@ -128,7 +183,7 @@ dicePoints face =
         |> List.map dicePoint
 
 
-dice : Int -> Svg Msg
+dice : Face -> Svg Msg
 dice face =
     svg
         [ width "120"
@@ -136,14 +191,15 @@ dice face =
         , viewBox "0 0 120 120"
         ]
         (diceBackground
-            :: dicePoints face
+            :: dicePoints (face |> faceValue)
         )
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ Html.text (String.fromInt model.dieFace) ]
+        [ h1 [] [ Html.text (model.dieFace |> faceValue |> String.fromInt) ]
         , dice model.dieFace
         , button [ onClick Roll ] [ Html.text "Roll" ]
+        , button [ onClick RollWeigthed ] [ Html.text "Roll weighted" ]
         ]
