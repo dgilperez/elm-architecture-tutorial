@@ -26,7 +26,8 @@ main =
 
 
 type alias Model =
-    { dieFace : Face
+    { dieFace1 : Face
+    , dieFace2 : Face
     }
 
 
@@ -41,7 +42,7 @@ type Face
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model One
+    ( Model One One
     , Cmd.none
     )
 
@@ -84,7 +85,7 @@ isOdd n =
 type Msg
     = Roll
     | RollWeigthed
-    | NewFace Face
+    | NewFace ( Face, Face )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -92,18 +93,23 @@ update msg model =
     case msg of
         Roll ->
             ( model
-            , Random.generate NewFace roll
+            , Random.generate NewFace rollTwice
             )
 
         RollWeigthed ->
             ( model
-            , Random.generate NewFace rollWeigthed
+            , Random.generate NewFace rollTwiceWeighted
             )
 
-        NewFace newFace ->
-            ( Model newFace
+        NewFace ( newFace1, newFace2 ) ->
+            ( Model newFace1 newFace2
             , Cmd.none
             )
+
+
+rollTwice : Random.Generator ( Face, Face )
+rollTwice =
+    Random.pair roll roll
 
 
 roll : Random.Generator Face
@@ -111,6 +117,11 @@ roll =
     Random.uniform
         One
         [ Two, Three, Four, Five, Six ]
+
+
+rollTwiceWeighted : Random.Generator ( Face, Face )
+rollTwiceWeighted =
+    Random.pair rollWeigthed rollWeigthed
 
 
 rollWeigthed : Random.Generator Face
@@ -195,11 +206,19 @@ dice face =
         )
 
 
+diceWithTitle : Face -> Html Msg
+diceWithTitle face =
+    div []
+        [ h1 [] [ Html.text (face |> faceValue |> String.fromInt) ]
+        , dice face
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ Html.text (model.dieFace |> faceValue |> String.fromInt) ]
-        , dice model.dieFace
+        [ diceWithTitle model.dieFace1
+        , diceWithTitle model.dieFace2
         , button [ onClick Roll ] [ Html.text "Roll" ]
         , button [ onClick RollWeigthed ] [ Html.text "Roll weighted" ]
         ]
