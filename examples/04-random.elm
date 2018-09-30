@@ -3,9 +3,11 @@ module Main exposing (Model, Msg(..), init, main, subscriptions, update, view)
 import Browser
 import Html exposing (..)
 import Html.Events exposing (..)
+import Process
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Task
 
 
 
@@ -85,6 +87,7 @@ isOdd n =
 type Msg
     = Roll
     | RollWeigthed
+    | FlipAround ( Msg, Int )
     | NewFace ( Face, Face )
 
 
@@ -101,10 +104,28 @@ update msg model =
             , Random.generate NewFace rollTwiceWeighted
             )
 
+        FlipAround ( message, times ) ->
+            case times of
+                0 ->
+                    update message model
+
+                _ ->
+                    ( model
+                    , [ message, FlipAround ( message, times - 1 ) ]
+                        |> delayAndToCmd
+                        |> Cmd.batch
+                    )
+
         NewFace ( newFace1, newFace2 ) ->
             ( Model newFace1 newFace2
             , Cmd.none
             )
+
+
+delayAndToCmd : List Msg -> List (Cmd Msg)
+delayAndToCmd listOfMessages =
+    listOfMessages
+        |> List.map (\n -> Process.sleep 100 |> Task.perform (always n))
 
 
 rollTwice : Random.Generator ( Face, Face )
@@ -219,6 +240,6 @@ view model =
     div []
         [ diceWithTitle model.dieFace1
         , diceWithTitle model.dieFace2
-        , button [ onClick Roll ] [ Html.text "Roll" ]
-        , button [ onClick RollWeigthed ] [ Html.text "Roll weighted" ]
+        , button [ onClick (FlipAround ( Roll, 10 )) ] [ Html.text "Roll" ]
+        , button [ onClick (FlipAround ( RollWeigthed, 10 )) ] [ Html.text "Roll weighted" ]
         ]
